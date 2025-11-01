@@ -1,47 +1,59 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const fs = require('fs');
+
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const server = http.createServer(app);
+const io = new Server(server);
+const PORT = 3000;
+
+const questions = JSON.parse(fs.readFileSync('questions.json', 'utf-8'));
 
 app.use(express.static(__dirname));
 
 let players = {};
-let roomStarted = false;
 let currentRound = 0;
-const totalRounds = 10;
-const roundTime = 20; // секунд
-
-const questions = require('./questions.json');
+let roundTime = 20;
+let roundInterval;
 
 io.on('connection', (socket) => {
-    console.log('Игрок подключился:', socket.id);
+    console.log('Новый игрок подключился: ' + socket.id);
 
     socket.on('join', (nickname) => {
-        players[socket.id] = { nickname, score: 0, currentAnswer: '', answered: false };
+        players[socket.id] = {
+            nickname: nickname,
+            score: 0,
+            lastAnswerCorrect: false,
+            answered: false
+        };
         io.emit('updatePlayers', Object.values(players));
     });
 
     socket.on('startGame', () => {
-        if (Object.keys(players).length >= 2 && !roomStarted) {
-            roomStarted = true;
-            currentRound = 0;
-            io.emit('gameStarted');
-            startRound();
-        }
+        currentRound = 0;
+        startRound();
+        io.emit('gameStarted');
     });
 
     socket.on('submitAnswer', (answer) => {
-        if (players[socket.id] && roomStarted) {
-            let q = questions[currentRound];
-            answer = answer.trim().toLowerCase();
-            let correct = q.answers.some(a => a.toLowerCase() === answer);
-            players[socket.id].currentAnswer = answer;
-            players[socket.id].answered = correct;
-            if (correct) {
-                players[socket.id].score += answer.replace(/\s+/g,'').length;
-            }
-            io.emit('updatePlayers', Object.values(players));
+        const player = players[socket.id];
+        if (!player) return;
+
+        const currentQ = questions[currentRound];
+        const answerLower = answer.trim().toLowerCase();
+
+        if (currentQ.answers.includes(answerLower)) {
+            player.score += answerLower.length;
+            player.lastAnswerCorrect = true;
+            socket.emit('answerResult', { correct: true });
+        } else {
+            player.lastAnswerCorrect = false;
+            socket.emit('answerResult', { correct: false });
         }
+
+        player.answered = true;
+        io.emit('updatePlayers', Object.values(players));
     });
 
     socket.on('disconnect', () => {
@@ -51,41 +63,21 @@ io.on('connection', (socket) => {
 });
 
 function startRound() {
-    if (currentRound >= totalRounds) {
+    if (currentRound >= questions.length) {
         io.emit('gameOver', Object.values(players));
-        roomStarted = false;
-        for (let p in players) {
-            players[p].score = 0;
-            players[p].currentAnswer = '';
-            players[p].answered = false;
-        }
         return;
     }
 
-    io.emit('newRound', { 
-        round: currentRound + 1, 
-        question: questions[currentRound].question,
-        roundTime
-    });
+    for (const id in players) {
+        players[id].answered = false;
+        players[id].lastAnswerCorrect = false;
+    }
 
     let timeLeft = roundTime;
-    const interval = setInterval(() => {
+    io.emit('newRound', { round: currentRound + 1, question: questions[currentRound].question, roundTime: timeLeft });
+
+    roundInterval = setInterval(() => {
         timeLeft--;
         io.emit('timer', timeLeft);
-        if (timeLeft <= 0) {
-            clearInterval(interval);
-            io.emit('roundEnded', Object.values(players));
-            // сброс ответов
-            for (let p in players) {
-                players[p].currentAnswer = '';
-                players[p].answered = false;
-            }
-            currentRound++;
-            setTimeout(startRound, 5000); // 5 сек между раундами
-        }
-    }, 1000);
-}
 
-http.listen(process.env.PORT || 3000, () => {
-    console.log('Сервер запущен на порту 3000');
-});
+        if (timeLeft <= 0
