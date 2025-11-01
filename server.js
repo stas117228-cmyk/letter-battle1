@@ -12,7 +12,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(__dirname));
 
 const questions = JSON.parse(fs.readFileSync(path.join(__dirname, "questions.json"), "utf8"));
 let currentQuestions = [];
@@ -32,25 +32,26 @@ function nextQuestion() {
     return;
   }
   currentQuestion = currentQuestions[currentRound];
-  io.emit("newQuestion", { 
-    question: currentQuestion.question, 
-    round: currentRound + 1, 
-    total: totalRounds 
+  io.emit("newQuestion", {
+    question: currentQuestion.question,
+    round: currentRound + 1,
+    total: totalRounds
   });
 }
 
 io.on("connection", (socket) => {
-  console.log("Новый игрок:", socket.id);
-  scores[socket.id] = { score: 0, name: "Игрок" };
+  console.log("Игрок подключился:", socket.id);
+  scores[socket.id] = { name: "Игрок", score: 0 };
 
   socket.on("joinGame", (name) => {
     scores[socket.id].name = name || "Игрок";
     socket.emit("joined");
+    io.emit("updateScores", scores);
   });
 
   socket.on("startGame", () => {
-    currentRound = 0;
     currentQuestions = pickRandomQuestions();
+    currentRound = 0;
     scores = {};
     io.emit("resetGame");
     nextQuestion();
@@ -65,11 +66,10 @@ io.on("connection", (socket) => {
       scores[socket.id].score += 1;
       socket.emit("answerResult", { correct: true, correctAnswer: currentQuestion.answers[0] });
       currentRound++;
-      setTimeout(nextQuestion, 2000);
+      setTimeout(nextQuestion, 1500);
     } else {
       socket.emit("answerResult", { correct: false });
     }
-
     io.emit("updateScores", scores);
   });
 
@@ -79,4 +79,5 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(3000, () => console.log("Сервер запущен на http://localhost:3000"));
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => console.log(`✅ Сервер работает на порту ${PORT}`));
