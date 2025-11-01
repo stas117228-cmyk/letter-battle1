@@ -48,7 +48,7 @@ answerInput.addEventListener('keydown', (e) => {
 // --- Получение вопроса ---
 socket.on('question', (data) => {
   questionText.textContent = data.question;
-  roundText.textContent = Раунд ${data.round}/10;
+  roundText.textContent = Раунд {data.round}/10;
   feedbackText.textContent = '';
 });
 
