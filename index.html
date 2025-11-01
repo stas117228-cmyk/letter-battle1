@@ -4,28 +4,48 @@
 <meta charset="UTF-8">
 <title>Викторина</title>
 <link rel="stylesheet" href="style.css">
+<!-- пустая иконка, чтобы не было ошибки 404 -->
+<link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 <body>
+
+<!-- Логин -->
 <div id="login">
     <h2>Введите никнейм</h2>
     <input id="nickname" placeholder="Ваш ник">
     <button id="joinBtn">Войти в комнату</button>
 </div>
 
+<!-- Лобби -->
 <div id="lobby" style="display:none;">
     <h2>Лобби</h2>
     <ul id="playersList"></ul>
     <button id="startBtn">Начать игру</button>
 </div>
 
+<!-- Игра -->
 <div id="game" style="display:none;">
-    <h2 id="roundTitle"></h2>
-    <p id="questionText"></p>
-    <input id="answerInput" placeholder="Ваш ответ">
-    <button id="submitAnswer">Отправить</button>
-    <p>Время: <span id="timer"></span> сек</p>
-    <h3>Таблица игроков</h3>
-    <div id="leaderboard"></div>
+    <div class="question-card">
+        <h2 id="roundTitle"></h2>
+        <p id="questionText"></p>
+        <span id="timer"></span>
+    </div>
+
+    <div class="answer-block">
+        <input id="answerInput" placeholder="Введите ответ">
+        <button id="submitAnswer">Отправить</button>
+    </div>
+
+    <div class="players-leaderboard">
+        <div class="players-panel">
+            <h3>Игроки</h3>
+            <ul id="playersList"></ul>
+        </div>
+        <div class="leaderboard-panel">
+            <h3>Лидерборд</h3>
+            <div id="leaderboard"></div>
+        </div>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
