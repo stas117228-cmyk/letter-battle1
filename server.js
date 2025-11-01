@@ -1,101 +1,82 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const fs = require('fs');
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const PORT = process.env.PORT || 3000;
 
-const questions = JSON.parse(fs.readFileSync('questions.json', 'utf-8'));
-let selectedQuestions = [];
+app.use(express.static(path.join(__dirname, "public")));
 
-app.use(express.static(__dirname));
-
-let players = {};
+const questions = JSON.parse(fs.readFileSync(path.join(__dirname, "questions.json"), "utf8"));
+let currentQuestions = [];
 let currentRound = 0;
-let roundTime = 20;
-let roundInterval;
+const totalRounds = 10;
+let currentQuestion = null;
+let scores = {};
 
-function getRandomQuestions(num) {
-    const shuffled = [...questions].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, num);
+function pickRandomQuestions() {
+  const shuffled = [...questions].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, totalRounds);
 }
 
-io.on('connection', (socket) => {
-    console.log('Новый игрок подключился: ' + socket.id);
-
-    socket.on('join', (nickname) => {
-        players[socket.id] = {
-            nickname,
-            score: 0,
-            lastAnswerCorrect: false,
-            answered: false
-        };
-        io.emit('updatePlayers', Object.values(players));
-    });
-
-    socket.on('startGame', () => {
-        currentRound = 0;
-        selectedQuestions = getRandomQuestions(10);
-        startRound();
-        io.emit('gameStarted');
-    });
-
-    socket.on('submitAnswer', (answer) => {
-        const player = players[socket.id];
-        if (!player) return;
-
-        const currentQ = selectedQuestions[currentRound];
-        const answerLower = answer.trim().toLowerCase();
-
-        if (currentQ.answers.includes(answerLower)) {
-            player.score += answerLower.length;
-            player.lastAnswerCorrect = true;
-            socket.emit('answerResult', { correct: true });
-        } else {
-            player.lastAnswerCorrect = false;
-            socket.emit('answerResult', { correct: false });
-        }
-
-        player.answered = true;
-        io.emit('updatePlayers', Object.values(players));
-    });
-
-    socket.on('disconnect', () => {
-        delete players[socket.id];
-        io.emit('updatePlayers', Object.values(players));
-    });
-});
-
-function startRound() {
-    if (currentRound >= selectedQuestions.length) {
-        io.emit('gameOver', Object.values(players));
-        return;
-    }
-
-    for (const id in players) {
-        players[id].answered = false;
-        players[id].lastAnswerCorrect = false;
-    }
-
-    let timeLeft = roundTime;
-    io.emit('newRound', { round: currentRound + 1, question: selectedQuestions[currentRound].question, roundTime: timeLeft });
-
-    roundInterval = setInterval(() => {
-        timeLeft--;
-        io.emit('timer', timeLeft);
-
-        if (timeLeft <= 0) {
-            clearInterval(roundInterval);
-            currentRound++;
-            io.emit('roundEnded', Object.values(players));
-            setTimeout(startRound, 2000);
-        }
-    }, 1000);
+function nextQuestion() {
+  if (currentRound >= totalRounds) {
+    io.emit("gameOver", scores);
+    return;
+  }
+  currentQuestion = currentQuestions[currentRound];
+  io.emit("newQuestion", { 
+    question: currentQuestion.question, 
+    round: currentRound + 1, 
+    total: totalRounds 
+  });
 }
 
-server.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+io.on("connection", (socket) => {
+  console.log("Новый игрок:", socket.id);
+  scores[socket.id] = { score: 0, name: "Игрок" };
+
+  socket.on("joinGame", (name) => {
+    scores[socket.id].name = name || "Игрок";
+    socket.emit("joined");
+  });
+
+  socket.on("startGame", () => {
+    currentRound = 0;
+    currentQuestions = pickRandomQuestions();
+    scores = {};
+    io.emit("resetGame");
+    nextQuestion();
+  });
+
+  socket.on("answer", (answer) => {
+    if (!currentQuestion) return;
+    const correctAnswers = currentQuestion.answers.map(a => a.trim().toLowerCase());
+    const userAnswer = answer.trim().toLowerCase();
+
+    if (correctAnswers.includes(userAnswer)) {
+      scores[socket.id].score += 1;
+      socket.emit("answerResult", { correct: true, correctAnswer: currentQuestion.answers[0] });
+      currentRound++;
+      setTimeout(nextQuestion, 2000);
+    } else {
+      socket.emit("answerResult", { correct: false });
+    }
+
+    io.emit("updateScores", scores);
+  });
+
+  socket.on("disconnect", () => {
+    delete scores[socket.id];
+    io.emit("updateScores", scores);
+  });
 });
+
+server.listen(3000, () => console.log("Сервер запущен на http://localhost:3000"));
