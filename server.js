@@ -9,26 +9,26 @@ const io = new Server(server);
 
 app.use(express.static(__dirname));
 
-// Загружаем вопросы из файла
 const questions = JSON.parse(fs.readFileSync('questions.json', 'utf-8'));
 
 const rooms = {};
 
-console.log('Server запущен, ждём подключений...');
+console.log('Сервер запущен');
 
 io.on('connection', socket => {
-    console.log('Новый сокет подключился:', socket.id);
+    console.log('Подключён сокет:', socket.id);
 
     socket.on('joinRoom', ({ nickname, roomId }) => {
-        console.log('joinRoom получен:', nickname, roomId);
-
+        if (!nickname || !roomId) return;
         if (!rooms[roomId]) rooms[roomId] = { players: [], round: 0, currentQuestion: null, timer: null, timeLeft: 20 };
         const room = rooms[roomId];
 
+        if (room.players.find(p => p.id === socket.id)) return;
         if (room.players.length >= 6) { socket.emit('roomFull'); return; }
 
         room.players.push({ id: socket.id, nickname, score: 0 });
         socket.join(roomId);
+        console.log(`Игрок ${nickname} присоединился к комнате ${roomId}`);
 
         io.to(roomId).emit('updatePlayers', room.players.map(p => p.nickname));
 
@@ -42,7 +42,7 @@ io.on('connection', socket => {
         const player = room.players.find(p => p.id === socket.id);
         if (!player) return;
 
-        const validAnswers = room.currentQuestion.a;
+        const validAnswers = room.currentQuestion.a.map(a => a.toLowerCase());
         const isCorrect = validAnswers.includes(answer.toLowerCase());
 
         if (isCorrect) {
@@ -99,4 +99,4 @@ function startRound(roomId) {
 }
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server запущен на порту ${PORT}`));
