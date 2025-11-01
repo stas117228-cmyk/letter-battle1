@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Ответ сервера о результатах
     socket.on('answerResult', function(data) {
         if (data.correct) {
             answerInput.style.border = '2px solid #4CAF50';
@@ -51,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() { answerInput.style.border = ''; }, 800);
     });
 
-    // Обновление игроков
     socket.on('updatePlayers', function(players) {
         if (playersListGame) {
             playersListGame.innerHTML = '';
