@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Прогресс раунда (анимация уменьшения)
+  // Прогресс раунда
   socket.on('roundProgress', (percent) => {
     progressBar.style.width = percent + '%';
   });
