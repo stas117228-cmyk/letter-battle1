@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -8,11 +9,8 @@ const io = new Server(server);
 
 app.use(express.static(__dirname));
 
-const questions = [
-  { q: "Столица Франции?", a: ["париж"] },
-  { q: "5 + 7 = ?", a: ["12"] },
-  { q: "Цвет неба днем?", a: ["синий"] }
-];
+// Загружаем вопросы из файла
+const questions = JSON.parse(fs.readFileSync('questions.json', 'utf-8'));
 
 const rooms = {};
 
@@ -41,12 +39,17 @@ io.on('connection', socket => {
         const room = rooms[roomId];
         if (!room || !room.currentQuestion) return;
 
-        const isCorrect = room.currentQuestion.a.includes(answer.toLowerCase());
-        socket.emit(isCorrect ? 'correctAnswer' : 'wrongAnswer');
+        const player = room.players.find(p => p.id === socket.id);
+        if (!player) return;
+
+        const validAnswers = room.currentQuestion.a;
+        const isCorrect = validAnswers.includes(answer.toLowerCase());
 
         if (isCorrect) {
-            const player = room.players.find(p => p.id === socket.id);
-            if (player) player.score += answer.length;
+            player.score += answer.length;
+            socket.emit('correctAnswer');
+        } else {
+            socket.emit('wrongAnswer');
         }
 
         io.to(roomId).emit('updateScores', room.players);
@@ -67,11 +70,17 @@ io.on('connection', socket => {
     });
 });
 
+function getRandomQuestion() {
+    const difficulty = Math.random() < 0.5 ? 'easy' : 'medium';
+    const filtered = questions.filter(q => q.difficulty === difficulty);
+    return filtered[Math.floor(Math.random() * filtered.length)];
+}
+
 function startRound(roomId) {
     const room = rooms[roomId];
     if (!room) return;
 
-    room.currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+    room.currentQuestion = getRandomQuestion();
     room.timeLeft = 20;
 
     io.to(roomId).emit('newQuestion', { round: room.round + 1, question: room.currentQuestion.q });
