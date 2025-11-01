@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang='ru'>
+<head>
+<meta charset='UTF-8'>
+<title>Вход в игру</title>
+<link rel='stylesheet' href='style.css'>
+</head>
+<body>
+<div class='container'>
+    <h1>Вход в игру</h1>
+    <input type='text' id='nickname' placeholder='Ваш ник'>
+    <input type='text' id='roomId' placeholder='ID комнаты'>
+    <button id='enterBtn'>Войти</button>
+</div>
+
+<script>
+document.getElementById('enterBtn').onclick = () => {
+    const nick = document.getElementById('nickname').value.trim();
+    const room = document.getElementById('roomId').value.trim();
+    if(!nick || !room) return;
+    localStorage.setItem('nickname', nick);
+    localStorage.setItem('roomId', room);
+    window.location.href = 'game.html';
+};
+</script>
+</body>
+</html>
