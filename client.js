@@ -41,28 +41,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // Ответ сервера о результатах
+    socket.on('answerResult', function(data) {
+        if (data.correct) {
+            answerInput.style.border = '2px solid #4CAF50';
+        } else {
+            answerInput.style.border = '2px solid #f44336';
+        }
+        setTimeout(function() { answerInput.style.border = ''; }, 800);
+    });
+
     // Обновление игроков
     socket.on('updatePlayers', function(players) {
-        // Лобби
-        playersList.innerHTML = '';
-        for (var i = 0; i < players.length; i++) {
-            var p = players[i];
-            var li = document.createElement('li');
-            li.textContent = p.nickname + ' (' + p.score + ')';
-            if (p.answered) li.className = 'correct';
-            playersList.appendChild(li);
+        if (playersListGame) {
+            playersListGame.innerHTML = '';
+            for (var i = 0; i < players.length; i++) {
+                var p = players[i];
+                var li = document.createElement('li');
+                li.textContent = p.nickname + ' (' + p.score + ')';
+                if (p.lastAnswerCorrect) li.className = 'correct';
+                else if (p.answered) li.className = 'wrong';
+                playersListGame.appendChild(li);
+            }
         }
-
-        // Игра
-        playersListGame.innerHTML = '';
-        for (var j = 0; j < players.length; j++) {
-            var p2 = players[j];
-            var li2 = document.createElement('li');
-            li2.textContent = p2.nickname + ' (' + p2.score + ')';
-            if (p2.answered) li2.className = 'correct';
-            playersListGame.appendChild(li2);
-        }
-
         updateLeaderboard(players);
     });
 
@@ -75,9 +76,11 @@ document.addEventListener('DOMContentLoaded', function() {
         roundTitle.textContent = 'Раунд ' + data.round;
         questionText.textContent = data.question;
         timerSpan.textContent = data.roundTime;
-        // Сбрасываем цвета игроков
-        var lis = playersListGame.getElementsByTagName('li');
-        for (var i = 0; i < lis.length; i++) lis[i].className = '';
+
+        if (playersListGame) {
+            var lis = playersListGame.getElementsByTagName('li');
+            for (var i = 0; i < lis.length; i++) lis[i].className = '';
+        }
     });
 
     socket.on('timer', function(timeLeft) {
@@ -85,17 +88,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     socket.on('roundEnded', function(players) {
-        // Помечаем правильные ответы
-        playersListGame.innerHTML = '';
-        for (var i = 0; i < players.length; i++) {
-            var p = players[i];
-            var li = document.createElement('li');
-            li.textContent = p.nickname + ' (' + p.score + ')';
-            if (p.lastAnswerCorrect) li.className = 'correct';
-            else li.className = 'wrong';
-            playersListGame.appendChild(li);
+        if (playersListGame) {
+            playersListGame.innerHTML = '';
+            for (var i = 0; i < players.length; i++) {
+                var p = players[i];
+                var li = document.createElement('li');
+                li.textContent = p.nickname + ' (' + p.score + ')';
+                if (p.lastAnswerCorrect) li.className = 'correct';
+                else li.className = 'wrong';
+                playersListGame.appendChild(li);
+            }
         }
-
         updateLeaderboard(players);
     });
 
@@ -107,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function updateLeaderboard(players) {
+        if (!leaderboardDiv) return;
         leaderboardDiv.innerHTML = '';
         players.sort(function(a,b){ return b.score - a.score; });
         for (var i = 0; i < players.length; i++) {
