@@ -1,91 +1,84 @@
-conconst socket = io();
+// client.js
 
-// Элементы интерфейса
-const loginSection = document.getElementById('login');
-const gameSection = document.getElementById('game');
-const leaderboardSection = document.getElementById('leaderboard');
-const questionText = document.getElementById('question');
-const answerInput = document.getElementById('answer');
-const submitBtn = document.getElementById('submit');
-const nicknameInput = document.getElementById('nickname');
-const loginButton = document.getElementById('loginButton');
-const playersList = document.getElementById('players');
-const leaderboardList = document.getElementById('leaderboardList');
-const feedbackText = document.getElementById('feedback');
-const roundText = document.getElementById('round');
+// Подключаем socket.io
+const socket = io();
 
-// --- Подключение игрока ---
-loginButton.addEventListener('click', () => {
-  const nickname = nicknameInput.value.trim();
-  if (nickname) {
-    socket.emit('join', nickname);
-  }
+// === Элементы интерфейса ===
+const nicknameInput = document.getElementById("nickname");
+const joinBtn = document.getElementById("joinBtn");
+const lobby = document.getElementById("lobby");
+const gameArea = document.getElementById("gameArea");
+const questionText = document.getElementById("question");
+const answerInput = document.getElementById("answer");
+const sendBtn = document.getElementById("sendBtn");
+const playersList = document.getElementById("players");
+const leaderboard = document.getElementById("leaderboard");
+
+// === Локальные переменные ===
+let nickname = "";
+let currentQuestion = {};
+let gameStarted = false;
+
+// === Событие входа в комнату ===
+joinBtn.addEventListener("click", () => {
+  nickname = nicknameInput.value.trim();
+  if (nickname) socket.emit("joinRoom", nickname);
 });
 
-// --- Нажатие Enter для кнопки “Войти” ---
-nicknameInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    loginButton.click();
-  }
+socket.on("roomJoined", (players) => {
+  lobby.style.display = "none";
+  gameArea.style.display = "block";
+  updatePlayersList(players);
 });
 
-// --- Отправка ответа ---
-submitBtn.addEventListener('click', () => {
-  const answer = answerInput.value.trim();
-  if (answer) {
-    socket.emit('answer', answer);
-    answerInput.value = '';
-  }
-});
+socket.on("updatePlayers", updatePlayersList);
 
-// --- Нажатие Enter для кнопки “Ответить” ---
-answerInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    submitBtn.click();
-  }
-});
-
-// --- Получение вопроса ---
-socket.on('question', (data) => {
-  questionText.textContent = data.question;
-  roundText.textContent = Раунд ${data.round}/10;
-  feedbackText.textContent = '';
-});
-
-// --- Обратная связь по ответу ---
-socket.on('answerResult', (data) => {
-  if (data.correct) {
-    feedbackText.textContent = '✅ Правильно!';
-    feedbackText.style.color = 'limegreen';
-  } else {
-    feedbackText.textContent = '❌ Неправильно!';
-    feedbackText.style.color = 'red';
-  }
-});
-
-// --- Обновление списка игроков ---
-socket.on('updatePlayers', (players) => {
-  playersList.innerHTML = '';
+function updatePlayersList(players) {
+  playersList.innerHTML = "";
   players.forEach(p => {
-    const li = document.createElement('li');
-    li.textContent = ${p.nickname}: ${p.score};
+    const li = document.createElement("li");
+    li.textContent = p.nickname + (p.ready ? " ✅" : "");
     playersList.appendChild(li);
   });
+}
+
+// === Получение вопроса ===
+socket.on("newQuestion", (question) => {
+  currentQuestion = question;
+  questionText.textContent = question.text;
+  answerInput.value = "";
+  answerInput.focus();
 });
 
-// --- Обновление таблицы лидеров ---
-socket.on('updateLeaderboard', (leaders) => {
-  leaderboardList.innerHTML = '';
-  leaders.forEach(p => {
-    const li = document.createElement('li');
-    li.textContent = ${p.nickname}: ${p.score};
-    leaderboardList.appendChild(li);
+// === Отправка ответа (Enter или кнопка) ===
+sendBtn.addEventListener("click", sendAnswer);
+answerInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendAnswer();
+});
+
+function sendAnswer() {
+  const answer = answerInput.value.trim();
+  if (answer) socket.emit("submitAnswer", answer);
+}
+
+// === Проверка правильности ответа ===
+socket.on("answerResult", (isCorrect) => {
+  if (isCorrect) {
+    answerInput.style.background = "#00cc66"; // зелёный — правильный
+  } else {
+    answerInput.style.background = "#ff3333"; // красный — неправильный
+  }
+  setTimeout(() => {
+    answerInput.style.background = "white";
+  }, 500);
+});
+
+// === Обновление лидерборда ===
+socket.on("updateLeaderboard", (scores) => {
+  leaderboard.innerHTML = "";
+  scores.forEach((p, index) => {
+    const div = document.createElement("div");
+    div.textContent = ${index + 1}. ${p.nickname}: ${p.score};
+    leaderboard.appendChild(div);
   });
-});
-
-// --- Переход к игре ---
-socket.on('gameStart', () => {
-  loginSection.style.display = 'none';
-  gameSection.style.display = 'block';
-  leaderboardSection.style.display = 'block';
 });
