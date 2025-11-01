@@ -1,24 +1,25 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const socket = io();
+document.addEventListener('DOMContentLoaded', function() {
+    var socket = io();
 
-    let nickname = '';
-    const loginDiv = document.getElementById('login');
-    const lobbyDiv = document.getElementById('lobby');
-    const gameDiv = document.getElementById('game');
+    var nickname = '';
+    var loginDiv = document.getElementById('login');
+    var lobbyDiv = document.getElementById('lobby');
+    var gameDiv = document.getElementById('game');
 
-    const nicknameInput = document.getElementById('nickname');
-    const joinBtn = document.getElementById('joinBtn');
-    const startBtn = document.getElementById('startBtn');
-    const answerInput = document.getElementById('answerInput');
-    const submitAnswerBtn = document.getElementById('submitAnswer');
-    const playersList = document.getElementById('playersList');
-    const leaderboardDiv = document.getElementById('leaderboard');
-    const roundTitle = document.getElementById('roundTitle');
-    const questionText = document.getElementById('questionText');
-    const timerSpan = document.getElementById('timer');
+    var nicknameInput = document.getElementById('nickname');
+    var joinBtn = document.getElementById('joinBtn');
+    var startBtn = document.getElementById('startBtn');
+    var answerInput = document.getElementById('answerInput');
+    var submitAnswerBtn = document.getElementById('submitAnswer');
+    var playersList = document.getElementById('playersList');
+    var playersListGame = document.getElementById('playersListGame');
+    var leaderboardDiv = document.getElementById('leaderboard');
+    var roundTitle = document.getElementById('roundTitle');
+    var questionText = document.getElementById('questionText');
+    var timerSpan = document.getElementById('timer');
 
     // Войти в комнату
-    joinBtn.onclick = () => {
+    joinBtn.onclick = function() {
         nickname = nicknameInput.value.trim();
         if (nickname) {
             socket.emit('join', nickname);
@@ -30,13 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Начать игру
-    startBtn.onclick = () => {
+    startBtn.onclick = function() {
         socket.emit('startGame');
     };
 
     // Отправка ответа
-    submitAnswerBtn.onclick = () => {
-        const answer = answerInput.value.trim();
+    submitAnswerBtn.onclick = function() {
+        var answer = answerInput.value.trim();
         if (answer) {
             socket.emit('submitAnswer', answer);
             answerInput.value = '';
@@ -44,52 +45,68 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Обновление игроков и лидерборда
-    socket.on('updatePlayers', (players) => {
+    socket.on('updatePlayers', function(players) {
+        // Обновляем лобби
         if (lobbyDiv.style.display === 'block') {
             playersList.innerHTML = '';
-            players.forEach(p => {
-                const li = document.createElement('li');
-                li.textContent = ${p.nickname} ${p.answered ? '✔️' : ''} (${p.score});
+            for (var i = 0; i < players.length; i++) {
+                var p = players[i];
+                var li = document.createElement('li');
+                li.textContent = p.nickname + (p.answered ? ' ✔️' : '') + ' (' + p.score + ')';
                 playersList.appendChild(li);
-            });
+            }
         }
+
+        // Обновляем игровую панель
+        playersListGame.innerHTML = '';
+        for (var j = 0; j < players.length; j++) {
+            var p2 = players[j];
+            var li2 = document.createElement('li');
+            li2.textContent = p2.nickname + (p2.answered ? ' ✔️' : '') + ' (' + p2.score + ')';
+            playersListGame.appendChild(li2);
+        }
+
         updateLeaderboard(players);
     });
 
-    socket.on('gameStarted', () => {
+    socket.on('gameStarted', function() {
         lobbyDiv.style.display = 'none';
         gameDiv.style.display = 'block';
     });
 
-    socket.on('newRound', (data) => {
-        roundTitle.textContent = Раунд ${data.round};
+    socket.on('newRound', function(data) {
+        roundTitle.textContent = 'Раунд ' + data.round;
         questionText.textContent = data.question;
         timerSpan.textContent = data.roundTime;
     });
 
-    socket.on('timer', (timeLeft) => {
+    socket.on('timer', function(timeLeft) {
         timerSpan.textContent = timeLeft;
     });
 
-    socket.on('roundEnded', (players) => {
+    socket.on('roundEnded', function(players) {
         updateLeaderboard(players);
     });
 
-    socket.on('gameOver', (players) => {
-        const winner = players.sort((a,b)=>b.score - a.score)[0];
-        alert(`Игра окончена! Победитель: ${winner.nickname}`);
+    socket.on('gameOver', function(players) {
+        // Определяем победителя
+        players.sort(function(a,b){ return b.score - a.score; });
+        var winner = players[0];
+        alert('Игра окончена! Победитель: ' + winner.nickname);
         location.reload();
     });
 
+    // Обновление лидерборда
     function updateLeaderboard(players) {
         leaderboardDiv.innerHTML = '';
-        players.sort((a,b) => b.score - a.score);
-        players.forEach(p => {
-            const bar = document.createElement('div');
+        players.sort(function(a,b){ return b.score - a.score; });
+        for (var i = 0; i < players.length; i++) {
+            var p = players[i];
+            var bar = document.createElement('div');
             bar.className = 'bar';
             bar.style.width = (p.score * 10) + 'px';
-            bar.textContent = ${p.nickname}: ${p.score};
+            bar.textContent = p.nickname + ': ' + p.score;
             leaderboardDiv.appendChild(bar);
-        });
+        }
     }
 });
