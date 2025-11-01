@@ -1,26 +1,10 @@
-body { 
-    background-color: #2a1a4a; 
-    color: #e0cfff; 
-    font-family: Arial, sans-serif; 
-    text-align:center; 
+body { font-family: Arial; padding:20px; }
+#leaderboard { margin-top: 10px; }
+.bar {
+    background: #4CAF50;
+    color: white;
+    padding: 5px;
+    margin: 2px 0;
+    text-align: left;
 }
-.container { 
-    max-width: 800px; 
-    margin: 0 auto; 
-    padding: 20px; 
-}
-input[type=text] { 
-    width: 300px; 
-    padding:10px; 
-    margin:5px; 
-    font-size:16px; 
-}
-button { 
-    padding:10px 20px; 
-    margin:5px; 
-    font-size:16px; 
-    cursor:pointer; 
-}
-#scoreChart { 
-    margin-top:20px; 
-}
+input { margin-right: 5px; }
