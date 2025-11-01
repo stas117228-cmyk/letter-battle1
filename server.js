@@ -8,10 +8,9 @@ const server = http.createServer(app);
 const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 
-// Загружаем вопросы
 const questions = JSON.parse(fs.readFileSync('questions.json', 'utf-8'));
+let selectedQuestions = [];
 
-// Статика
 app.use(express.static(__dirname));
 
 let players = {};
@@ -19,13 +18,17 @@ let currentRound = 0;
 let roundTime = 20;
 let roundInterval;
 
-// Подключение игрока
+function getRandomQuestions(num) {
+    const shuffled = [...questions].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, num);
+}
+
 io.on('connection', (socket) => {
     console.log('Новый игрок подключился: ' + socket.id);
 
     socket.on('join', (nickname) => {
         players[socket.id] = {
-            nickname: nickname,
+            nickname,
             score: 0,
             lastAnswerCorrect: false,
             answered: false
@@ -35,6 +38,7 @@ io.on('connection', (socket) => {
 
     socket.on('startGame', () => {
         currentRound = 0;
+        selectedQuestions = getRandomQuestions(10);
         startRound();
         io.emit('gameStarted');
     });
@@ -43,7 +47,7 @@ io.on('connection', (socket) => {
         const player = players[socket.id];
         if (!player) return;
 
-        const currentQ = questions[currentRound];
+        const currentQ = selectedQuestions[currentRound];
         const answerLower = answer.trim().toLowerCase();
 
         if (currentQ.answers.includes(answerLower)) {
@@ -65,23 +69,20 @@ io.on('connection', (socket) => {
     });
 });
 
-// Функция запуска раунда
 function startRound() {
-    if (currentRound >= questions.length) {
+    if (currentRound >= selectedQuestions.length) {
         io.emit('gameOver', Object.values(players));
         return;
     }
 
-    // Сброс статусов игроков
     for (const id in players) {
         players[id].answered = false;
         players[id].lastAnswerCorrect = false;
     }
 
     let timeLeft = roundTime;
-    io.emit('newRound', { round: currentRound + 1, question: questions[currentRound].question, roundTime: timeLeft });
+    io.emit('newRound', { round: currentRound + 1, question: selectedQuestions[currentRound].question, roundTime: timeLeft });
 
-    // Таймер раунда
     roundInterval = setInterval(() => {
         timeLeft--;
         io.emit('timer', timeLeft);
@@ -90,12 +91,11 @@ function startRound() {
             clearInterval(roundInterval);
             currentRound++;
             io.emit('roundEnded', Object.values(players));
-            setTimeout(startRound, 2000); // пауза 2 секунды перед следующим раундом
+            setTimeout(startRound, 2000);
         }
     }, 1000);
 }
 
-// Запуск сервера
 server.listen(PORT, () => {
     console.log(`Сервер запущен на порту ${PORT}`);
 });
