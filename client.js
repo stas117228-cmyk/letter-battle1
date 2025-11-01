@@ -5,71 +5,98 @@ const loginDiv = document.getElementById('login');
 const lobbyDiv = document.getElementById('lobby');
 const gameDiv = document.getElementById('game');
 
-document.getElementById('joinBtn').onclick = () => {
-    nickname = document.getElementById('nickname').value.trim();
-    if(nickname) {
+const nicknameInput = document.getElementById('nickname');
+const joinBtn = document.getElementById('joinBtn');
+const startBtn = document.getElementById('startBtn');
+const answerInput = document.getElementById('answerInput');
+const submitAnswerBtn = document.getElementById('submitAnswer');
+const playersList = document.getElementById('playersList');
+const leaderboardDiv = document.getElementById('leaderboard');
+const roundTitle = document.getElementById('roundTitle');
+const questionText = document.getElementById('questionText');
+const timerSpan = document.getElementById('timer');
+
+// Войти в комнату
+joinBtn.onclick = () => {
+    nickname = nicknameInput.value.trim();
+    if (nickname) {
         socket.emit('join', nickname);
         loginDiv.style.display = 'none';
         lobbyDiv.style.display = 'block';
+    } else {
+        alert('Введите никнейм!');
     }
 };
 
-document.getElementById('startBtn').onclick = () => {
+// Начать игру
+startBtn.onclick = () => {
     socket.emit('startGame');
 };
 
-document.getElementById('submitAnswer').onclick = () => {
-    const answer = document.getElementById('answerInput').value;
-    if(answer.trim()) {
+// Отправка ответа
+submitAnswerBtn.onclick = () => {
+    const answer = answerInput.value.trim();
+    if (answer) {
         socket.emit('submitAnswer', answer);
-        document.getElementById('answerInput').value = '';
+        answerInput.value = '';
     }
 };
 
+// Обновление списка игроков и лидеров
 socket.on('updatePlayers', (players) => {
-    const list = document.getElementById('playersList');
-    list.innerHTML = '';
-    players.forEach(p => {
-        const li = document.createElement('li');
-        li.textContent = ${p.nickname} ${p.answered ? '✔️' : ''} (${p.score});
-        list.appendChild(li);
-    });
+    // Лобби
+    if (lobbyDiv.style.display === 'block') {
+        playersList.innerHTML = '';
+        players.forEach(p => {
+            const li = document.createElement('li');
+            li.textContent = ${p.nickname} ${p.answered ? '✔️' : ''} (${p.score});
+            playersList.appendChild(li);
+        });
+    }
+    // Лидерборд
     updateLeaderboard(players);
 });
 
+// Игра началась
 socket.on('gameStarted', () => {
     lobbyDiv.style.display = 'none';
     gameDiv.style.display = 'block';
 });
 
+// Новый раунд
 socket.on('newRound', (data) => {
-    document.getElementById('roundTitle').textContent = Раунд ${data.round};
-    document.getElementById('questionText').textContent = data.question;
-    document.getElementById('timer').textContent = data.roundTime;
+    roundTitle.textContent = Раунд ${data.round};
+    questionText.textContent = data.question;
+    timerSpan.textContent = data.roundTime;
 });
 
+// Таймер
 socket.on('timer', (timeLeft) => {
-    document.getElementById('timer').textContent = timeLeft;
+    timerSpan.textContent = timeLeft;
 });
 
+// Раунд завершён
 socket.on('roundEnded', (players) => {
     updateLeaderboard(players);
 });
 
+// Игра окончена
 socket.on('gameOver', (players) => {
-    alert('Игра окончена! Победитель: ' + players.sort((a,b)=>b.score-a.score)[0].nickname);
+    const winner = players.sort((a,b)=>b.score - a.score)[0];
+    alert(`Игра окончена! Победитель: ${winner.nickname}`);
     location.reload();
 });
 
+// Обновление лидерборда с динамическими столбиками
 function updateLeaderboard(players) {
-    const lb = document.getElementById('leaderboard');
-    lb.innerHTML = '';
-    players.sort((a,b)=>b.score-a.score);
+    leaderboardDiv.innerHTML = '';
+    // сортировка по очкам
+    players.sort((a,b) => b.score - a.score);
     players.forEach(p => {
         const bar = document.createElement('div');
         bar.className = 'bar';
-        bar.style.width = (p.score*10)+'px';
+        bar.style.width = (p.score * 10) + 'px';
         bar.textContent = ${p.nickname}: ${p.score};
-        lb.appendChild(bar);
+        leaderboardDiv.appendChild(bar);
     });
 }
