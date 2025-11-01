@@ -1,107 +1,91 @@
 const socket = io();
 
-document.addEventListener('DOMContentLoaded', () => {
-  const joinBtn = document.getElementById('joinBtn');
-  const startBtn = document.getElementById('startBtn');
-  const submitBtn = document.getElementById('submitBtn');
-  const nicknameInput = document.getElementById('nickname');
-  const answerInput = document.getElementById('answerInput');
-  const roomDiv = document.getElementById('room');
-  const gameDiv = document.getElementById('game');
-  const questionEl = document.getElementById('question');
-  const playersList = document.getElementById('playersList');
-  const leaderItems = document.getElementById('leaderItems');
-  const progressBar = document.querySelector('.progress');
+// Элементы интерфейса
+const loginSection = document.getElementById('login');
+const gameSection = document.getElementById('game');
+const leaderboardSection = document.getElementById('leaderboard');
+const questionText = document.getElementById('question');
+const answerInput = document.getElementById('answer');
+const submitBtn = document.getElementById('submit');
+const nicknameInput = document.getElementById('nickname');
+const loginButton = document.getElementById('loginButton');
+const playersList = document.getElementById('players');
+const leaderboardList = document.getElementById('leaderboardList');
+const feedbackText = document.getElementById('feedback');
+const roundText = document.getElementById('round');
 
-  let currentQuestion = null;
+// --- Подключение игрока ---
+loginButton.addEventListener('click', () => {
+  const nickname = nicknameInput.value.trim();
+  if (nickname) {
+    socket.emit('join', nickname);
+  }
+});
 
-  // Вход в комнату
-  joinBtn.addEventListener('click', () => {
-    const nickname = nicknameInput.value.trim();
-    if (!nickname) return;
-    socket.emit('joinRoom', nickname);
-    document.getElementById('login').style.display = 'none';
-    roomDiv.style.display = 'block';
-  });
+// --- Нажатие Enter для кнопки “Войти” ---
+nicknameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    loginButton.click();
+  }
+});
 
-  // Старт игры
-  startBtn.addEventListener('click', () => {
-    socket.emit('startGame');
-    startBtn.disabled = true;
-  });
-
-  // Отправка ответа
-  submitBtn.addEventListener('click', () => {
-    const answer = answerInput.value.trim();
-    if (!answer || !currentQuestion) return;
-    socket.emit('submitAnswer', answer);
+// --- Отправка ответа ---
+submitBtn.addEventListener('click', () => {
+  const answer = answerInput.value.trim();
+  if (answer) {
+    socket.emit('answer', answer);
     answerInput.value = '';
-  });
+  }
+});
 
-  // Enter = ответить
-  answerInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') submitBtn.click();
-  });
+// --- Нажатие Enter для кнопки “Ответить” ---
+answerInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    submitBtn.click();
+  }
+});
 
-  // Получение игроков
-  socket.on('updatePlayers', (players) => {
-    playersList.innerHTML = '';
-    players.forEach(p => {
-      const div = document.createElement('div');
-      div.classList.add('player-item');
-      div.textContent = p;
-      playersList.appendChild(div);
-    });
-  });
+// --- Получение вопроса ---
+socket.on('question', (data) => {
+  questionText.textContent = data.question;
+  roundText.textContent = Раунд ${data.round}/10;
+  feedbackText.textContent = '';
+});
 
-  // Получение лидерборда
-  socket.on('updateLeaderboard', (board) => {
-    leaderItems.innerHTML = '';
-    board.forEach(entry => {
-      const div = document.createElement('div');
-      div.classList.add('leader-item');
-      div.textContent = ${entry.name}: ${entry.score};
-      leaderItems.appendChild(div);
-    });
-  });
+// --- Обратная связь по ответу ---
+socket.on('answerResult', (data) => {
+  if (data.correct) {
+    feedbackText.textContent = '✅ Правильно!';
+    feedbackText.style.color = 'limegreen';
+  } else {
+    feedbackText.textContent = '❌ Неправильно!';
+    feedbackText.style.color = 'red';
+  }
+});
 
-  // Новый вопрос
-  socket.on('newQuestion', (question) => {
-    currentQuestion = question;
-    questionEl.textContent = question.text;
-    progressBar.style.width = '100%';
-
-    // Сброс цвета ввода
-    answerInput.classList.remove('correct', 'incorrect');
+// --- Обновление списка игроков ---
+socket.on('updatePlayers', (players) => {
+  playersList.innerHTML = '';
+  players.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = ${p.nickname}: ${p.score};
+    playersList.appendChild(li);
   });
+});
 
-  // Подсветка ответа
-  socket.on('answerResult', (result) => {
-    if (result.correct) {
-      answerInput.classList.remove('incorrect');
-      answerInput.classList.add('correct');
-    } else {
-      answerInput.classList.remove('correct');
-      answerInput.classList.add('incorrect');
-    }
+// --- Обновление таблицы лидеров ---
+socket.on('updateLeaderboard', (leaders) => {
+  leaderboardList.innerHTML = '';
+  leaders.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = ${p.nickname}: ${p.score};
+    leaderboardList.appendChild(li);
   });
+});
 
-  // Прогресс раунда
-  socket.on('roundProgress', (percent) => {
-    progressBar.style.width = percent + '%';
-  });
-
-  // Конец игры
-  socket.on('gameOver', (winner) => {
-    alert(`Игра завершена! Победитель: ${winner}`);
-    startBtn.disabled = false;
-    gameDiv.style.display = 'none';
-    roomDiv.style.display = 'block';
-  });
-
-  // Начало игры (показ игрового поля)
-  socket.on('gameStarted', () => {
-    roomDiv.style.display = 'none';
-    gameDiv.style.display = 'block';
-  });
+// --- Переход к игре ---
+socket.on('gameStart', () => {
+  loginSection.style.display = 'none';
+  gameSection.style.display = 'block';
+  leaderboardSection.style.display = 'block';
 });
