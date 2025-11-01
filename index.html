@@ -1,30 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎮 Ретро Викторина</title>
+  <style>
+    body {
+      font-family: 'Press Start 2P', monospace;
+      background-color: #111;
+      color: #0f0;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
+      margin-bottom: 20px;
+    }
+
+    #lobby, #gameArea {
+      border: 3px solid #0f0;
+      padding: 20px;
+      border-radius: 10px;
+      width: 80%;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #000;
+      box-shadow: 0 0 20px #0f0;
+    }
+
+    input, button {
+      background: #000;
+      color: #0f0;
+      border: 2px solid #0f0;
+      padding: 10px;
+      font-family: inherit;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background: #0f0;
+      color: #000;
+      cursor: pointer;
+    }
+
+    #question {
+      margin-top: 20px;
+      font-size: 14px;
+      line-height: 1.5em;
+      color: #0ff;
+    }
+
+    #players, #leaderboard {
+      text-align: left;
+      margin-top: 15px;
+      border-top: 1px dashed #0f0;
+      padding-top: 10px;
+      font-size: 10px;
+    }
+
+    #leaderboard {
+      border-color: #0ff;
+    }
+
+    #answer {
+      margin-top: 15px;
+      width: 80%;
+    }
+
+    .side-panels {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .panel {
+      border: 2px solid #0ff;
+      padding: 10px;
+      width: 200px;
+      height: 200px;
+      overflow-y: auto;
+      background: #000;
+      box-shadow: 0 0 10px #0ff;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
 <body>
-  <div id="login">
-    <h1>Викторина 80-х</h1>
-    <input id="nickname" placeholder="Введите никнейм">
-    <button id="loginButton">Войти в комнату</button>
+  <h1>🎮 Ретро Викторина</h1>
+
+  <div id="lobby">
+    <p>Введите ваш ник:</p>
+    <input id="nickname" placeholder="Игрок..." />
+    <button id="joinBtn">Войти</button>
   </div>
 
-  <div id="main-container">
-    <div id="playersSection" class="sidebar">
-      <h2>Игроки</h2>
-      <ul id="players"></ul>
-    </div>
+  <div id="gameArea" style="display:none;">
+    <div id="question">Ожидание начала игры...</div>
+    <input id="answer" placeholder="Ваш ответ..." />
+    <button id="sendBtn">Отправить</button>
 
-    <div id="game">
-      <h2 id="round"></h2>
-      <div id="question"></div>
-      <input id="answer" placeholder="Ваш ответ">
-      <button id="submit">Ответить</button>
-      <div id="feedback"></div>
-    </div>
-
-    <div id="leaderboard" class="sidebar">
-      <h2>Лидерборд</h2>
-      <ul id="leaderboardList"></ul>
+    <div class="side-panels">
+      <div class="panel">
+        <h3>👾 Игроки</h3>
+        <ul id="players"></ul>
+      </div>
+      <div class="panel">
+        <h3>🏆 Лидерборд</h3>
+        <div id="leaderboard"></div>
+      </div>
     </div>
   </div>
 
+  <!-- ВАЖНО: сначала socket.io, потом client.js -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
 </body>
+</html>
