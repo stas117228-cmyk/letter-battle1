@@ -1,7 +1,7 @@
 /* Общий фон */
 body {
     font-family: 'Arial', sans-serif;
-    background: linear-gradient(to right, #1e1e2f, #252536);
+    background: linear-gradient(135deg, #1e1e2f, #252536);
     color: #f0f0f0;
     display: flex;
     flex-direction: column;
@@ -10,13 +10,13 @@ body {
     min-height: 100vh;
 }
 
-/* Блоки */
+/* Блоки: Логин, Лобби, Игра */
 #login, #lobby, #game {
     background-color: #2e2e3e;
-    padding: 20px 30px;
+    padding: 25px 30px;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    width: 400px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    width: 450px;
     margin-bottom: 20px;
 }
 
@@ -29,7 +29,7 @@ h2, h3 {
 /* Инпуты */
 input {
     width: calc(100% - 20px);
-    padding: 8px 10px;
+    padding: 10px 12px;
     margin: 5px 0;
     border-radius: 6px;
     border: none;
@@ -39,7 +39,7 @@ input {
 
 /* Кнопки */
 button {
-    padding: 10px 15px;
+    padding: 10px 20px;
     border: none;
     border-radius: 8px;
     background-color: #4CAF50;
@@ -47,50 +47,98 @@ button {
     font-size: 16px;
     cursor: pointer;
     margin-top: 10px;
-    transition: background 0.3s;
+    transition: background 0.3s, transform 0.2s;
 }
 
 button:hover {
     background-color: #45a049;
+    transform: translateY(-2px);
 }
 
-/* Список игроков */
-#playersList {
-    list-style: none;
-    padding: 0;
-    margin: 10px 0;
-}
-
-#playersList li {
-    padding: 5px 10px;
-    margin: 5px 0;
-    background-color: #3e3e4e;
-    border-radius: 6px;
-    display: flex;
-    justify-content: space-between;
-}
-
-/* Таблица лидеров */
-#leaderboard {
-    width: 100%;
-    margin-top: 15px;
-}
-
-.bar {
-    background: linear-gradient(90deg, #4CAF50, #81C784);
-    color: #fff;
-    padding: 5px 10px;
-    margin: 5px 0;
-    border-radius: 6px;
-    transition: width 0.5s;
-    text-align: left;
+/* Карточка вопроса */
+.question-card {
+    background-color: #3a3a4a;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    text-align: center;
+    margin-bottom: 15px;
 }
 
 /* Таймер */
 #timer {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: bold;
     display: block;
-    text-align: center;
-    margin: 10px 0;
+    margin-top: 10px;
+    color: #FFD700;
+}
+
+/* Блок ввода ответа */
+.answer-block {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.answer-block input {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.answer-block button {
+    flex-shrink: 0;
+}
+
+/* Список игроков и лидерборд */
+.players-leaderboard {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.players-panel, .leaderboard-panel {
+    background-color: #3a3a4a;
+    padding: 15px;
+    border-radius: 10px;
+    width: 50%;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+/* Игроки */
+.players-panel ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.players-panel li {
+    padding: 6px 10px;
+    margin: 5px 0;
+    background-color: #4a4a5a;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Лидерборд с динамическими столбиками */
+#leaderboard .bar {
+    background: linear-gradient(90deg, #4CAF50, #81C784);
+    color: #fff;
+    padding: 6px 10px;
+    margin: 6px 0;
+    border-radius: 6px;
+    transition: width 0.5s ease;
+    text-align: left;
+}
+
+/* Анимация правильного / неправильного ответа */
+.correct {
+    background-color: #4CAF50 !important;
+}
+
+.wrong {
+    background-color: #f44336 !important;
 }
