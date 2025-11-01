@@ -6,10 +6,12 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
+// Загружаем вопросы
 const questions = JSON.parse(fs.readFileSync('questions.json', 'utf-8'));
 
+// Статика
 app.use(express.static(__dirname));
 
 let players = {};
@@ -17,6 +19,7 @@ let currentRound = 0;
 let roundTime = 20;
 let roundInterval;
 
+// Подключение игрока
 io.on('connection', (socket) => {
     console.log('Новый игрок подключился: ' + socket.id);
 
@@ -62,12 +65,14 @@ io.on('connection', (socket) => {
     });
 });
 
+// Функция запуска раунда
 function startRound() {
     if (currentRound >= questions.length) {
         io.emit('gameOver', Object.values(players));
         return;
     }
 
+    // Сброс статусов игроков
     for (const id in players) {
         players[id].answered = false;
         players[id].lastAnswerCorrect = false;
@@ -76,8 +81,21 @@ function startRound() {
     let timeLeft = roundTime;
     io.emit('newRound', { round: currentRound + 1, question: questions[currentRound].question, roundTime: timeLeft });
 
+    // Таймер раунда
     roundInterval = setInterval(() => {
         timeLeft--;
         io.emit('timer', timeLeft);
 
-        if (timeLeft <= 0
+        if (timeLeft <= 0) {
+            clearInterval(roundInterval);
+            currentRound++;
+            io.emit('roundEnded', Object.values(players));
+            setTimeout(startRound, 2000); // пауза 2 секунды перед следующим раундом
+        }
+    }, 1000);
+}
+
+// Запуск сервера
+server.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+});
